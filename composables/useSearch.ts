@@ -1,4 +1,5 @@
 import type { MergedLinks, GenericResponse, SearchResponse } from "~/server/core/types/models";
+import { useSearchStore } from "~/stores/searchStore";
 import { ALL_PLUGIN_NAMES } from "~/config/plugins";
 
 export interface SearchOptions {
@@ -50,8 +51,8 @@ export function useSearch() {
 
   // 暂停搜索
   function pauseSearch(): void {
-    if (state.value.loading || state.value.deepLoading) {
-      state.value.paused = true;
+    if (searchStore.loading || searchStore.deepLoading) {
+      searchStore.paused = true;
       // 取消当前的请求，但保留已获取的结果
       cancelActiveRequests();
     }
@@ -59,10 +60,10 @@ export function useSearch() {
 
   // 继续搜索（从暂停处继续）
   async function continueSearch(options: SearchOptions): Promise<void> {
-    if (!state.value.paused || !state.value.searched) return;
+    if (!searchStore.paused || !searchStore.searched) return;
 
-    state.value.paused = false;
-    state.value.deepLoading = true;
+    searchStore.paused = false;
+    searchStore.deepLoading = true;
 
     // 继续执行深度搜索
     const mySeq = ++searchSeq;
@@ -71,7 +72,7 @@ export function useSearch() {
     } catch (error) {
       // 忽略错误
     } finally {
-      state.value.deepLoading = false;
+      searchStore.deepLoading = false;
     }
   }
 
@@ -210,7 +211,7 @@ export function useSearch() {
     for (let i = 0; i < maxLen; i++) {
       if (mySeq !== searchSeq) break;
       // 检查是否暂停
-      if (state.value.paused) break;
+      if (searchStore.paused) break;
 
       const reqs: Array<Promise<SearchResponse | null>> = [];
 
@@ -263,14 +264,14 @@ export function useSearch() {
         for (const r of resps) {
           if (!r || mySeq !== searchSeq) continue;
           if (r.merged_by_type) {
-            state.value.merged = mergeMergedByType(
-              state.value.merged,
+            searchStore.merged = mergeMergedByType(
+              searchStore.merged,
               r.merged_by_type
             );
           }
         }
         // 更新总数
-        state.value.total = Object.values(state.value.merged).reduce(
+        searchStore.total = Object.values(searchStore.merged).reduce(
           (sum, arr) => sum + (arr?.length || 0),
           0
         );
@@ -286,7 +287,7 @@ export function useSearch() {
 
     // 验证
     if (!keyword || keyword.trim().length === 0) {
-      state.value.error = "请输入搜索关键词";
+      searchStore.error = "请输入搜索关键词";
       return;
     }
 
@@ -298,7 +299,7 @@ export function useSearch() {
       (settings.enabledTgChannels?.length || 0) === 0 &&
       enabledPlugins.length === 0
     ) {
-      state.value.error = "请先在设置中选择至少一个搜索来源";
+      searchStore.error = "请先在设置中选择至少一个搜索来源";
       return;
     }
 
@@ -312,13 +313,13 @@ export function useSearch() {
     }
 
     // 重置状态
-    state.value.loading = true;
-    state.value.error = "";
-    state.value.searched = true;
-    state.value.elapsedMs = 0;
-    state.value.total = 0;
-    state.value.merged = {};
-    state.value.deepLoading = false;
+    searchStore.loading = true;
+    searchStore.error = "";
+    searchStore.searched = true;
+    searchStore.elapsedMs = 0;
+    searchStore.total = 0;
+    searchStore.merged = {};
+    searchStore.deepLoading = false;
 
     const mySeq = ++searchSeq;
     const start = performance.now();
@@ -328,26 +329,26 @@ export function useSearch() {
       const fastMerged = await performFastSearch(options);
       if (mySeq !== searchSeq) return;
 
-      state.value.merged = fastMerged;
-      state.value.total = Object.values(fastMerged).reduce(
+      searchStore.merged = fastMerged;
+      searchStore.total = Object.values(fastMerged).reduce(
         (sum, arr) => sum + (arr?.length || 0),
         0
       );
 
       // 2) 深度搜索
-      state.value.deepLoading = true;
+      searchStore.deepLoading = true;
       await performDeepSearch(options, mySeq);
       // 如果暂停了，停止后续操作
-      if (state.value.paused) return;
+      if (searchStore.paused) return;
     } catch (error: any) {
-      state.value.error = error?.data?.message || error?.message || "请求失败";
+      searchStore.error = error?.data?.message || error?.message || "请求失败";
     } finally {
-      state.value.elapsedMs = Math.round(performance.now() - start);
+      searchStore.elapsedMs = Math.round(performance.now() - start);
       // 如果暂停了，保持 loading 状态，只取消 deepLoading
-      if (!state.value.paused) {
-        state.value.loading = false;
+      if (!searchStore.paused) {
+        searchStore.loading = false;
       }
-      state.value.deepLoading = false;
+      searchStore.deepLoading = false;
     }
   }
 

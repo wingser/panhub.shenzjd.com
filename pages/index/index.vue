@@ -19,8 +19,8 @@
     <!-- 搜索框 -->
     <SearchBox
       v-model="kw"
-      :loading="searchState.loading"
-      :paused="searchState.paused"
+      :loading="searchStore.loading"
+      :paused="searchStore.paused"
       :placeholder="placeholder"
       @search="onSearch"
       @reset="fullReset"
@@ -28,22 +28,22 @@
       @continue="handleContinueSearch" />
 
     <!-- 统计和过滤器 -->
-    <div v-if="searchState.searched" class="stats-bar">
+    <div v-if="searchStore.searched" class="stats-bar">
       <div class="stats-content">
         <div class="stats-main">
           <span class="stat-item">
             <span class="stat-label">结果</span>
-            <span class="stat-value">{{ searchState.total }}</span>
+            <span class="stat-value">{{ searchStore.total }}</span>
           </span>
           <span class="stat-item">
             <span class="stat-label">用时</span>
-            <span class="stat-value">{{ searchState.elapsedMs }}ms</span>
+            <span class="stat-value">{{ searchStore.elapsedMs }}ms</span>
           </span>
-          <span v-if="searchState.deepLoading && !searchState.paused" class="loading-indicator">
+          <span v-if="searchStore.deepLoading && !searchStore.paused" class="loading-indicator">
             <span class="pulse-dot"></span>
             <span class="loading-text">持续搜索中…</span>
           </span>
-          <span v-if="searchState.paused" class="paused-indicator-bar">
+          <span v-if="searchStore.paused" class="paused-indicator-bar">
             <span class="pause-icon">⏸</span>
             <span class="paused-text">搜索已暂停</span>
           </span>
@@ -97,7 +97,7 @@
     </section>
 
     <!-- 空状态 -->
-    <section v-else-if="searchState.searched && !searchState.loading" class="empty-state">
+    <section v-else-if="searchStore.searched && !searchStore.loading" class="empty-state">
       <div class="empty-card">
         <div class="empty-icon">🔍</div>
         <h3>未找到相关资源</h3>
@@ -106,9 +106,9 @@
     </section>
 
     <!-- 错误提示 -->
-    <section v-if="searchState.error" class="error-alert">
+    <section v-if="searchStore.error" class="error-alert">
       <span class="error-icon">⚠️</span>
-      <span>{{ searchState.error }}</span>
+      <span>{{ searchStore.error }}</span>
     </section>
 
     <!-- 热搜推荐 - 始终显示 -->
@@ -195,7 +195,7 @@ const initialVisible = 3;
 const expandedSet = ref<Set<string>>(new Set());
 
 // 使用新的搜索 composable
-const { state: searchState, performSearch, resetSearch, copyLink, pauseSearch, continueSearch } = useSearch();
+const { searchStore, performSearch, resetSearch, copyLink, pauseSearch, continueSearch } = useSearch();
 const { settings } = useSettings();
 
 // 获取搜索选项
@@ -248,15 +248,15 @@ const platformColor = (t: string): string => PLATFORM_INFO[t]?.color || "#9ca3af
 const platformIcon = (t: string): string => PLATFORM_INFO[t]?.icon || "📦";
 
 // 计算属性
-const platforms = computed(() => Object.keys(searchState.value.merged));
-const hasResults = computed(() => platforms.value.length > 0);
+// 平台列表现在从 store getter 获取
+const hasResults = computed(() => searchStore.hasResults);
 
 const groupedResults = computed(() => {
   const list: Array<{ type: string; items: any[] }> = [];
   const source =
     filterPlatform.value === "all"
-      ? searchState.value.merged
-      : { [filterPlatform.value]: searchState.value.merged[filterPlatform.value] || [] };
+      ? searchStore.merged
+      : { [filterPlatform.value]: searchStore.merged[filterPlatform.value] || [] };
   for (const type of Object.keys(source)) {
     if (!source[type]?.length) continue;
     list.push({ type, items: source[type] || [] });

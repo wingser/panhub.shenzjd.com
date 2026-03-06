@@ -2,6 +2,7 @@
 import channelsConfig from "./config/channels.json";
 
 export default defineNuxtConfig({
+  pinia: true,
   compatibilityDate: "2025-07-15",
   devtools: { enabled: false },
   app: {
