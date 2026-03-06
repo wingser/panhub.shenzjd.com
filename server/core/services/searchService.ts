@@ -201,35 +201,15 @@ export class SearchService {
       return result;
     };
 
-    // 第一批：优先频道（使用更高并发）
-    let results: SearchResult[] = [];
-    if (priorityList.length > 0) {
-      const priorityConcurrency = Math.min(concurrency * 2, 12); // 优先频道使用双倍并发
-      const priorityTasks = priorityList.map(createChannelTask);
-      const priorityResults = await this.runWithConcurrency(
-        priorityTasks,
-        priorityConcurrency
-      );
+    // 所有任务并发执行（优先频道和普通频道并行）
+    const allTasks = [...priorityList, ...normalList].map(createChannelTask);
+    const allResults = await this.runWithConcurrency(allTasks, concurrency);
 
-      for (const arr of priorityResults) {
-        if (Array.isArray(arr)) {
-          results.push(...arr);
-        }
-      }
-    }
-
-    // 如果优先频道已有结果，继续抓取普通频道
-    if (normalList.length > 0) {
-      const normalTasks = normalList.map(createChannelTask);
-      const normalResults = await this.runWithConcurrency(
-        normalTasks,
-        concurrency
-      );
-
-      for (const arr of normalResults) {
-        if (Array.isArray(arr)) {
-          results.push(...arr);
-        }
+    // 合并结果
+    const results: SearchResult[] = [];
+    for (const arr of allResults) {
+      if (Array.isArray(arr)) {
+        results.push(...arr);
       }
     }
 
