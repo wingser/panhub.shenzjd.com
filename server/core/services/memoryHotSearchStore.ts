@@ -2,7 +2,7 @@ import type { IHotSearchStore, HotSearchItem, HotSearchStats } from "./hotSearch
 
 /**
  * 内存热搜存储实现
- * 用于 SQLite 不可用时的降级方案
+ * 用于 JSON 文件不可用时的降级方案（Vercel/CF 无持久化文件系统）
  */
 export class MemoryHotSearchStore implements IHotSearchStore {
   private memoryStore = new Map<string, HotSearchItem>();

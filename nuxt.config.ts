@@ -43,10 +43,17 @@ export default defineNuxtConfig({
     "/api/hot-searches": { swr: false, cache: false },
     // 豆瓣热搜允许短时缓存（服务端已有 60 分钟 cache）
     "/api/douban-hot": { swr: false, cache: false },
+    // 密码门接口不缓存，确保 POST body 正常处理
+    "/api/auth/**": { swr: false, cache: false },
+    // 搜索接口依赖 Cookie 鉴权，禁止缓存避免 401 被缓存
+    "/api/search": { swr: false, cache: false },
+    // 图片代理依赖豆瓣，禁止 SWR 缓存避免错误响应被缓存
+    "/api/img": { swr: false, cache: false },
     "/**": { swr: 3600 },
   },
   runtimeConfig: {
     // server-only 配置
+    searchPassword: process.env.SEARCH_PASSWORD || "",
     priorityChannels: channelsConfig.priorityChannels,
     defaultChannels: channelsConfig.defaultChannels,
     defaultConcurrency: channelsConfig.defaultConcurrency,

@@ -24,7 +24,7 @@ export interface DoubanHotResult {
   categories: Record<string, DoubanHotCategory>;
 }
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 60 分钟
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 小时（豆瓣新片榜更新较慢）
 const cache = new MemoryCache<DoubanHotResult>({ maxSize: 10 });
 const UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1";
@@ -37,6 +37,12 @@ function getNumbers(text: string | undefined): number {
 
 function buildCacheKey(categories: string[]): string {
   return `douban-hot:${[...categories].sort().join(",")}`;
+}
+
+/** 豆瓣 CDN 实际返回 webp，页面里的 .jpg 需替换为 .webp */
+function fixDoubanCoverUrl(url: string): string {
+  if (!url || !url.includes("doubanio.com")) return url;
+  return url.replace(/\.jpg$/i, ".webp");
 }
 
 export function extractSearchTerm(title: string): string {
@@ -69,10 +75,13 @@ async function scrapeDoubanMovie(): Promise<DoubanHotItem[]> {
       img.attr("src") ||
       undefined;
 
+    const coverUrl = cover
+      ? fixDoubanCoverUrl(cover.startsWith("//") ? "https:" + cover : cover)
+      : undefined;
     items.push({
       id: id || undefined,
       title,
-      cover: cover ? (cover.startsWith("//") ? "https:" + cover : cover) : undefined,
+      cover: coverUrl,
       desc: dom.find("p.pl").text().trim(),
       hot: getNumbers(dom.find("span.pl").text()),
       url: href || `https://movie.douban.com/subject/${id}/`,

@@ -11,12 +11,15 @@
 ## 🚀 快速部署
 
 ### Vercel 一键部署
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fwu529778790%2Fpanhub.shenzjd.com&project-name=panhub&repository-name=panhub.shenzjd.com)
 
 ### Cloudflare Workers 一键部署
+
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/wu529778790/panhub.shenzjd.com)
 
 ### Docker 部署
+
 ```bash
 # 快速启动
 docker run --name panhub -p 3000:3000 -d ghcr.io/wu529778790/panhub.shenzjd.com:latest
@@ -29,6 +32,7 @@ docker run -d --name panhub -p 3000:3000 \
 ```
 
 ### 本地开发
+
 ```bash
 pnpm install
 pnpm dev          # 开发服务器
@@ -41,17 +45,22 @@ pnpm build        # 构建生产版
 ## ✨ 核心功能
 
 ### 智能搜索
+
 - **优先级频道**：高优先级频道优先处理，响应速度提升 50%+
 - **批量并发**：独立配置优先/普通频道并发数
 - **智能缓存**：LRU 淘汰 + 内存监控 + 过期清理
 - **暂停/继续**：搜索过程可随时暂停，找到结果立即停止
 
 ### 用户体验
+
 - **实时热搜**：展示其他用户搜索词，点击即可搜索
-- **SQLite 持久化**：热搜数据本地存储（支持内存降级）
+- **豆瓣电影新片榜**：抓取豆瓣电影榜，点击快速发起网盘搜索
+- **热搜持久化**：JSON 文件本地存储（Vercel/CF 自动降级内存）
+- **密码门**：可配置 `SEARCH_PASSWORD`，搜索时输入密码解锁（Cookie 30 天有效）
 - **深色模式**：完整支持深色主题
 
 ### 稳定性
+
 - **自动重试**：网络请求失败自动重试（指数退避）
 - **超时控制**：可配置超时，避免无限等待
 - **优雅降级**：单个插件失败不影响整体
@@ -61,53 +70,27 @@ pnpm build        # 构建生产版
 ## 📖 使用说明
 
 ### 搜索流程
+
 1. **输入关键词并回车**开始搜索
 2. **快速结果**：优先频道先返回（~50ms）
 3. **深度结果**：剩余频道继续加载
 4. **自动合并**：结果去重、按时间排序、分类型展示
 
 ### 操作按钮
+
 - **暂停/继续**：随时控制搜索过程
 - **重置**：取消所有请求，清空结果和输入框
 - **热搜词**：点击直接搜索
 
 ### 设置配置
+
 右上角设置面板可配置：
+
 - 插件管理（启用/禁用）
 - TG 频道列表（优先/普通）
 - 性能参数（并发数、超时时间、缓存）
 
 ---
-
-## 🔧 技术架构
-
-### 核心模块
-```
-server/core/
-├── cache/memoryCache.ts      # LRU 缓存系统
-├── services/searchService.ts # 搜索服务（优先级批处理）
-├── services/jsonFileHotSearchStore.ts # JSON 文件热搜持久化
-├── services/tg.ts            # TG 频道抓取
-├── plugins/manager.ts        # 插件管理器
-└── utils/fetch.ts            # 网络请求（重试+超时）
-```
-
-### 热搜系统
-```
-用户搜索 → useSearch.ts → 记录到 JSON 文件 → GET /api/hot-searches → 标签云展示
-```
-
-**特点**：不分类，所有搜索词统一展示为智能标签云，按频次决定视觉权重。
-
----
-
-## 🧪 测试
-
-```bash
-pnpm test                    # 所有单元测试
-pnpm test:api                # API 集成测试
-pnpm test:coverage           # 测试覆盖率
-```
 
 **测试覆盖**：60+ 测试用例，核心逻辑 >90% 覆盖
 
@@ -120,36 +103,7 @@ pnpm test:coverage           # 测试覆盖率
 | `LOG_LEVEL` | `info` | 日志级别 |
 | `NITRO_PRESET` | auto-detect | 部署预设 |
 | `PORT` | `3000` | 服务端口 |
-
----
-
-## 🔍 常见问题
-
-### 1. Docker 数据不持久化？
-检查是否挂载数据目录并使用 SQLite 模式：
-```bash
-curl http://localhost:3000/api/hot-search-stats
-# 应返回 "mode": "json" 或 "memory"
-```
-
-### 2. 如何查看热搜数据？
-```bash
-# 查看热搜
-curl http://localhost:3000/api/hot-searches?limit=30
-```
-
-### 3. 内存模式 vs JSON 文件模式？
-- **内存模式**：重启丢失数据，Vercel/CF 无持久化时自动使用
-- **JSON 文件模式**：持久化到 `./data/hot-searches.json`，Docker/本地可用
-
-### 4. 豆瓣热搜不显示？
-豆瓣热搜直接抓取豆瓣电影/小组页面，若失败可能因网络或豆瓣反爬。数据缓存 60 分钟。
-
-### 5. 热搜记录规则？
-- 搜索**开始时**立即记录（不管是否有结果）
-- 自动刷新显示
-- 保留最近 30 条高频搜索
-- 自动过滤敏感词
+| `SEARCH_PASSWORD` | 空 | 非空时启用密码门，搜索时需输入正确密码（Cookie 30 天有效） |
 
 ---
 
@@ -172,6 +126,7 @@ MIT License
 欢迎提交 Issue 和 Pull Request！
 
 **开发规范**：
+
 - TypeScript 编写
 - 核心功能必须包含单元测试
 - 提交前运行 `pnpm test`

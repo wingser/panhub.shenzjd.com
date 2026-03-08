@@ -22,3 +22,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# Runtime data (hot-searches.json)
+data/hot-searches.json

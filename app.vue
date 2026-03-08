@@ -58,6 +58,15 @@
     <div v-if="toast.show" class="toast" :class="toast.type" role="status" aria-live="polite">
       {{ toast.message }}
     </div>
+
+    <!-- 密码门（仅在用户发起搜索时弹出） -->
+    <ClientOnly>
+      <PasswordGate
+        :show="showPasswordGate"
+        :error="auth.error"
+        :submitting="unlockSubmitting"
+        @unlock="onUnlock" />
+    </ClientOnly>
   </div>
 </template>
 
@@ -66,7 +75,32 @@ import { ALL_PLUGIN_NAMES } from "./config/plugins";
 import channelsConfig from "~/config/channels.json";
 
 const { settings, loadSettings, saveSettings, resetToDefault } = useSettings();
+const auth = useAuth();
 const openSettings = ref(false);
+const showPasswordGate = ref(false);
+const unlockSubmitting = ref(false);
+const pendingOnUnlock = ref<(() => void) | null>(null);
+
+function requestUnlock(onSuccess?: () => void) {
+  pendingOnUnlock.value = onSuccess ?? null;
+  showPasswordGate.value = true;
+}
+
+async function onUnlock(password: string) {
+  unlockSubmitting.value = true;
+  const ok = await auth.unlock(password);
+  unlockSubmitting.value = false;
+  if (ok) {
+    showPasswordGate.value = false;
+    const cb = pendingOnUnlock.value;
+    pendingOnUnlock.value = null;
+    if (cb) {
+      nextTick(() => cb());
+    }
+  }
+}
+
+provide("requestUnlock", requestUnlock);
 
 // Toast 状态
 const toast = ref({
@@ -100,6 +134,7 @@ watch(() => settings.value, (newVal, oldVal) => {
 
 onMounted(() => {
   loadSettings();
+  auth.fetchStatus();
 });
 
 // 暴露给子组件使用

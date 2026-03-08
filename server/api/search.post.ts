@@ -1,8 +1,10 @@
 import { defineEventHandler, readBody, sendError, createError } from "h3";
+import { requireSearchAuth } from "../utils/requireAuth";
 import { getOrCreateSearchService } from "../core/services";
 import type { GenericResponse, SearchRequest } from "../core/types/models";
 
 export default defineEventHandler(async (event) => {
+  requireSearchAuth(event);
   const config = useRuntimeConfig();
   const service = getOrCreateSearchService(config);
   const body = (await readBody<SearchRequest>(event)) || ({} as SearchRequest);

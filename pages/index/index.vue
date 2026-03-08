@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, nextTick } from "vue";
 import { PLATFORM_INFO } from "~/config/plugins";
 
 const config = useRuntimeConfig();
@@ -209,6 +209,8 @@ const {
   hasResults,
 } = useSearch();
 const { settings, loadSettings } = useSettings();
+const auth = useAuth();
+const requestUnlock = inject<(onSuccess?: () => void) => void>("requestUnlock");
 
 // 获取搜索选项（使用最新的用户设置）
 function getSearchOptions() {
@@ -234,16 +236,26 @@ async function recordHotSearch(keyword: string) {
   } catch (_e) {}
 }
 
+// 执行实际搜索逻辑（供 requestUnlock 回调复用）
+async function doSearch() {
+  if (!kw.value || searchState.value.loading) return;
+  loadSettings();
+  const keyword = kw.value.trim();
+  recordHotSearch(keyword);
+  await performSearch({
+    ...getSearchOptions(),
+    onAuthRequired: requestUnlock ?? undefined,
+  });
+}
+
 // 搜索执行
 async function onSearch() {
-  if (!kw.value || searchState.loading) return;
-
-  loadSettings();
-
-  const keyword = kw.value.trim();
-  recordHotSearch(keyword); // 并行：记录热搜不阻塞搜索
-
-  await performSearch(getSearchOptions());
+  if (!kw.value || searchState.value.loading) return;
+  if (auth.locked.value && requestUnlock) {
+    requestUnlock(doSearch);
+    return;
+  }
+  await doSearch();
 }
 
 // 快速搜索
@@ -254,17 +266,31 @@ async function quickSearch(keyword: string) {
 
 // 继续搜索（从暂停处继续）
 async function handleContinueSearch() {
-  if (!searchState.paused) return;
+  if (!searchState.value.paused) return;
+  if (auth.locked.value && requestUnlock) {
+    requestUnlock(async () => {
+      loadSettings();
+      await continueSearch({
+        ...getSearchOptions(),
+        onAuthRequired: requestUnlock ?? undefined,
+      });
+    });
+    return;
+  }
   loadSettings();
-  await continueSearch(getSearchOptions());
+  await continueSearch({
+    ...getSearchOptions(),
+    onAuthRequired: requestUnlock ?? undefined,
+  });
 }
 
-// 完全重置 - 清空输入框、结果、状态，并刷新热搜数据
+// 完全重置 - 清空输入框、结果、状态，并恢复/刷新热搜
 async function fullReset() {
   kw.value = "";
   resetSearch();
-  if (doubanHotRef.value) doubanHotRef.value.refresh();
-  if (hotSearchRef.value) hotSearchRef.value.refresh();
+  await nextTick();
+  if (doubanHotRef.value) await doubanHotRef.value.refresh();
+  if (hotSearchRef.value) await hotSearchRef.value.refresh();
 }
 
 // 平台信息
@@ -274,9 +300,8 @@ const platformColor = (t: string): string => PLATFORM_INFO[t]?.color || "#9ca3af
 
 // 获取所有有结果的平台类型
 const platforms = computed(() => {
-  return Object.keys(searchState.value.merged).filter(
-    type => searchState.value.merged[type]?.length > 0
-  );
+  const m = searchState.value?.merged ?? {};
+  return Object.keys(m).filter((type) => (m[type]?.length ?? 0) > 0);
 });
 
 const groupedResults = computed(() => {

@@ -11,7 +11,7 @@ This repository is a Nuxt 4 + TypeScript app with server-side search aggregation
 - `test/unit/`: Vitest unit tests (`*.test.ts`).
 - `test/*.mjs`: API/integration-oriented test scripts.
 - `public/` and `assets/`: static files and styling assets.
-- `data/`: local runtime data (including SQLite in local/Docker workflows).
+- `data/`: local runtime data (JSON hot-search persistence in local/Docker).
 
 ## Build, Test, and Development Commands
 Use `pnpm` (lockfile is `pnpm-lock.yaml`).

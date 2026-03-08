@@ -1,4 +1,5 @@
 import { defineEventHandler, getQuery, sendError, createError } from "h3";
+import { requireSearchAuth } from "../utils/requireAuth";
 import { getOrCreateSearchService } from "../core/services";
 import type { GenericResponse, SearchRequest } from "../core/types/models";
 
@@ -12,6 +13,7 @@ function parseList(val: string | undefined): string[] | undefined {
 }
 
 export default defineEventHandler(async (event) => {
+  requireSearchAuth(event);
   const config = useRuntimeConfig();
   const service = getOrCreateSearchService(config);
   const q = getQuery(event);
