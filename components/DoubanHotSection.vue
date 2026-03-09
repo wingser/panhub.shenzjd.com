@@ -2,13 +2,6 @@
   <div v-if="!hasAnyData" class="hidden"></div>
 
   <div v-else class="douban-movie-section">
-    <div class="section-head">
-      <h2 class="section-title">
-        豆瓣{{ currentCategory?.label }} · {{ currentCategory?.type || "榜单" }}
-      </h2>
-      <p class="section-subtitle">点击可快速发起网盘搜索</p>
-    </div>
-
     <!-- 分类 Tabs -->
     <div class="category-tabs">
       <button
@@ -17,7 +10,7 @@
         :class="['tab-btn', { active: selectedCategoryId === cat.id }]"
         @click="selectCategory(cat.id)"
       >
-        {{ cat.type || "榜单" }}
+        {{ cat.label }} {{ cat.type || "榜单" }}
       </button>
     </div>
 
