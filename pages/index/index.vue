@@ -802,6 +802,10 @@ function visibleSorted(items: any[]) {
 }
 
 @media (max-width: 640px) {
+  .hero-aside {
+    display: none;
+  }
+
   .hero {
     padding: 24px 18px;
   }
